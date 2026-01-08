@@ -49,7 +49,7 @@ export default function DashboardOverview() {
       const { data: sessions } = await supabase
         .from('scraping_sessions')
         .select('*')
-        .eq('user_id', profile.id)
+        // .eq('user_id', profile.id) // Removed for global dashboard
         .order('created_at', { ascending: false });
 
       if (sessions && sessions.length > 0) {

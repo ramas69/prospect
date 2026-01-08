@@ -30,7 +30,7 @@ export default function Templates() {
     const { data: templatesData } = await supabase
       .from('templates')
       .select('*')
-      .eq('user_id', profile.id)
+      // .eq('user_id', profile.id) // Enable shared templates
       .order('created_at', { ascending: false });
 
     if (!templatesData) {
@@ -46,7 +46,7 @@ export default function Templates() {
         let query = supabase
           .from('scraping_sessions')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          // .eq('user_id', profile.id) // Count usage across ALL users
           .eq('sector', template.sector);
 
         if (template.location) {

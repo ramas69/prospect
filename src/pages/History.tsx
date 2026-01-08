@@ -67,7 +67,7 @@ export default function History() {
     const { data: sessionsData } = await supabase
       .from('scraping_sessions')
       .select('*')
-      .eq('user_id', profile.id)
+      // .eq('user_id', profile.id) // Removed to allow seeing all users' sessions
       .order('created_at', { ascending: false });
 
     if (!sessionsData) {
