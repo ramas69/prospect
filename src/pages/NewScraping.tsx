@@ -236,7 +236,6 @@ export default function NewScraping() {
           .update({ status: 'failed' })
           .eq('id', sessionId);
       }
-    } finally {
       setIsLoading(false);
     }
   };

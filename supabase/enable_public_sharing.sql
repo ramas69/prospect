@@ -77,7 +77,12 @@ CREATE POLICY "Anyone can update sessions"
   ON scraping_sessions FOR UPDATE
   USING (true);
 
--- Results: Anyone can create/edit results
+DROP POLICY IF EXISTS "Anyone can delete sessions" ON scraping_sessions;
+CREATE POLICY "Anyone can delete sessions"
+  ON scraping_sessions FOR DELETE
+  USING (true);
+
+-- Results: Anyone can create/edit/delete results
 DROP POLICY IF EXISTS "Anyone can insert results" ON scraping_results;
 CREATE POLICY "Anyone can insert results"
   ON scraping_results FOR INSERT
@@ -88,7 +93,12 @@ CREATE POLICY "Anyone can update results"
   ON scraping_results FOR UPDATE
   USING (true);
 
--- Templates: Anyone can create/edit templates (Shared Library)
+DROP POLICY IF EXISTS "Anyone can delete results" ON scraping_results;
+CREATE POLICY "Anyone can delete results"
+  ON scraping_results FOR DELETE
+  USING (true);
+
+-- Templates: Anyone can create/edit/delete templates
 DROP POLICY IF EXISTS "Anyone can insert templates" ON templates;
 CREATE POLICY "Anyone can insert templates"
   ON templates FOR INSERT
@@ -97,6 +107,11 @@ CREATE POLICY "Anyone can insert templates"
 DROP POLICY IF EXISTS "Anyone can update templates" ON templates;
 CREATE POLICY "Anyone can update templates"
   ON templates FOR UPDATE
+  USING (true);
+
+DROP POLICY IF EXISTS "Anyone can delete templates" ON templates;
+CREATE POLICY "Anyone can delete templates"
+  ON templates FOR DELETE
   USING (true);
 
 -- Users can only edit THEIR OWN profile (Keep this strict)

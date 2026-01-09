@@ -21,8 +21,10 @@ import {
   ChevronDown,
   ShieldCheck,
   ShieldAlert,
-  ShieldQuestion
+  ShieldQuestion,
+  Eye
 } from 'lucide-react';
+import BusinessDetailsModal from '../components/BusinessDetailsModal';
 import * as XLSX from 'xlsx';
 
 interface Prospect {
@@ -46,6 +48,7 @@ interface Prospect {
     sector: string;
     location: string | null;
   };
+  raw_data?: any;
 }
 
 export default function Prospects() {
@@ -58,6 +61,9 @@ export default function Prospects() {
   const [contactFilter, setContactFilter] = useState('all');
   const [updatingAction, setUpdatingAction] = useState<{ id: string, type: 'status' | 'note' | 'email', value?: string } | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  const [selectedProspectId, setSelectedProspectId] = useState<string | undefined>(undefined);
+  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
 
   const statusOptions = [
     { value: 'to_contact', label: 'À contacter', icon: MessageCircle, color: 'text-gray-500 bg-gray-100 dark:bg-gray-900/50' },
@@ -81,6 +87,7 @@ export default function Prospects() {
       .from('scraping_results')
       .select(`
   *,
+  raw_data,
   sessions: scraping_sessions(
     sector,
     location
@@ -217,6 +224,17 @@ export default function Prospects() {
 
   return (
     <div className="space-y-6">
+      {selectedBusiness && (
+        <BusinessDetailsModal
+          business={selectedBusiness}
+          prospectId={selectedProspectId}
+          onClose={() => {
+            setSelectedBusiness(null);
+            setSelectedProspectId(undefined);
+          }}
+        />
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Gestion des Prospects</h1>
@@ -437,6 +455,73 @@ export default function Prospects() {
                         Site Web
                       </a>
                     )}
+                    <button
+                      onClick={async () => {
+                        setSelectedProspectId(prospect.id);
+                        // 1. Si on a déjà les raw_data, on les utilise directement
+                        if (prospect.raw_data) {
+                          setSelectedBusiness(prospect.raw_data);
+                          return;
+                        }
+
+                        // 2. Sinon, on va chercher dans la session d'origine (pour les vieux leads)
+                        try {
+                          setLoadingDetails(prospect.id);
+
+                          const { data: sessionData, error } = await supabase
+                            .from('scraping_sessions')
+                            .select('scraped_data')
+                            .eq('id', prospect.session_id)
+                            .single();
+
+                          if (error) throw error;
+
+                          if (sessionData && sessionData.scraped_data) {
+                            let parsedData: any[] = [];
+                            if (typeof sessionData.scraped_data === 'string') {
+                              parsedData = JSON.parse(sessionData.scraped_data);
+                            } else {
+                              parsedData = sessionData.scraped_data;
+                            }
+
+                            // Trouver le business correspondant
+                            const details = parsedData.find((item: any) => item.Titre === prospect.business_name);
+
+                            if (details) {
+                              setSelectedBusiness(details);
+                            } else {
+                              // Fallback si non trouvé dans le JSON
+                              throw new Error("Détails non trouvés dans la session");
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Erreur chargement détails:', err);
+                          // Fallback manuel basique
+                          setSelectedBusiness({
+                            Titre: prospect.business_name,
+                            Rue: prospect.address,
+                            Ville: prospect.sessions?.location,
+                            Téléphone: prospect.phone,
+                            Email: prospect.email,
+                            "Site web": prospect.website,
+                            "Score total": prospect.rating,
+                            "Nombre d'avis": prospect.reviews_count,
+                            "Nom de catégorie": prospect.category || prospect.sessions?.sector,
+                          });
+                        } finally {
+                          setLoadingDetails(null);
+                        }
+                      }}
+                      disabled={loadingDetails === prospect.id}
+                      className="flex-1 lg:w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all text-sm font-bold disabled:opacity-70 disabled:cursor-wait"
+                    >
+                      {loadingDetails === prospect.id ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                      Voir détails
+                    </button>
                     <button className="flex-1 lg:w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-100 transition-all text-sm font-bold">
                       <ExternalLink className="w-4 h-4" />
                       Ouvrir Maps

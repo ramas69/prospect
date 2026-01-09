@@ -10,6 +10,7 @@ export default function RadarScanningOverlay({ sessionId }: RadarProps) {
     const [foundTargets, setFoundTargets] = useState(0);
     const [limit, setLimit] = useState(0);
     const [startedAt, setStartedAt] = useState<string | null>(null);
+    const [isCompleted, setIsCompleted] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
     const [, setTick] = useState(0); // Forcing re-render for simulation
 
@@ -44,20 +45,26 @@ export default function RadarScanningOverlay({ sessionId }: RadarProps) {
                 setFoundTargets(data.actual_results || 0);
                 setLimit(data.limit_results || 0);
                 setStartedAt(data.started_at);
+                if (data.status === 'completed') setIsCompleted(true);
             }
         };
         loadSession();
+
+        // Polling fallback to match ScrapingProgress behavior
+        const pollInterval = setInterval(loadSession, 3000);
 
         const channel = supabase.channel(`radar_${sessionId}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scraping_sessions', filter: `id=eq.${sessionId}` }, (payload: any) => {
                 setFoundTargets(payload.new.actual_results || 0);
                 setLimit(payload.new.limit_results || 0);
                 setStartedAt(payload.new.started_at);
+                if (payload.new.status === 'completed') setIsCompleted(true);
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
+            clearInterval(pollInterval);
         };
     }, [sessionId]);
 
@@ -124,22 +131,36 @@ export default function RadarScanningOverlay({ sessionId }: RadarProps) {
                 </div>
                 <h2 className="text-4xl font-black text-white tracking-tight tabular-nums">
                     {(() => {
-                        // Simulation Logic
+                        // Simulation Logic matching ScrapingProgress
+                        if (isCompleted) {
+                            return (
+                                <>
+                                    {foundTargets > 0 ? foundTargets : limit} <span className="text-2xl text-gray-500 font-bold">/ {limit > 0 ? limit : '...'}</span>
+                                </>
+                            );
+                        }
+
                         let displayCount = foundTargets;
 
                         if (startedAt && limit > 0) {
                             const startTime = new Date(startedAt).getTime();
                             const elapsedSeconds = (Date.now() - startTime) / 1000;
-                            const simulated = Math.floor(elapsedSeconds / 15.5);
-                            displayCount = Math.max(foundTargets, simulated);
-                            // Cap at limit-1 until completed
-                            if (displayCount >= limit) displayCount = limit - 1;
+                            // Match ScrapingProgress: 16s per lead
+                            const simulated = Math.floor(elapsedSeconds / 16);
+
+                            // Logic update: Only cap if we are relying on SIMULATION to reach the limit.
+                            // If we actually HAVE the targets (foundTargets), show them!
+                            if (foundTargets >= limit) {
+                                displayCount = foundTargets;
+                            } else {
+                                displayCount = Math.max(foundTargets, simulated);
+                                // Cap at limit-1 if we are still waiting for completion/confimation
+                                if (displayCount >= limit) displayCount = limit - 1;
+                            }
                         }
 
                         // If simulated is negative (weird clock), fallback
                         if (displayCount < 0) displayCount = 0;
-                        // If foundTargets is actually higher (real data), use that
-                        if (foundTargets > displayCount) displayCount = foundTargets;
 
                         return (
                             <>

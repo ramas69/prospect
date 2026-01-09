@@ -1,4 +1,5 @@
 import { X, MapPin, Phone, Mail, Globe, Star, Clock, ExternalLink, Info, CheckCircle2, Building2, Wallet, Accessibility, Dog, Baby, Car } from 'lucide-react';
+import ProspectTimeline from './ProspectTimeline';
 
 interface BusinessDetails {
   row_number?: number;
@@ -20,10 +21,11 @@ interface BusinessDetails {
 
 interface BusinessDetailsModalProps {
   business: BusinessDetails;
+  prospectId?: string;
   onClose: () => void;
 }
 
-export default function BusinessDetailsModal({ business, onClose }: BusinessDetailsModalProps) {
+export default function BusinessDetailsModal({ business, prospectId, onClose }: BusinessDetailsModalProps) {
   let openingHours: Array<{ day: string; hours: string }> = [];
   let businessInfo: Record<string, any> = {};
 
@@ -359,6 +361,13 @@ export default function BusinessDetailsModal({ business, onClose }: BusinessDeta
             </div>
           </div>
         </div>
+
+        {/* TIMELINE SECTION - Full Width */}
+        {prospectId && (
+          <div className="px-6 pb-6">
+            <ProspectTimeline prospectId={prospectId} />
+          </div>
+        )}
 
         {/* FOOTER */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">

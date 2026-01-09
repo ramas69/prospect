@@ -83,6 +83,7 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
   const [filteredResults, setFilteredResults] = useState<ScrapingResult[]>([]);
   const [detailedData, setDetailedData] = useState<DetailedBusinessData[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<DetailedBusinessData | null>(null);
+  const [selectedProspectId, setSelectedProspectId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('to_contact');
@@ -143,7 +144,8 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
 
         setDetailedData(parsedData);
 
-        if (parsedData.length > 0) {
+        // Only migrate if we don't have results in DB yet
+        if (parsedData.length > 0 && currentResults.length === 0) {
           const existingNames = new Set(currentResults.map(r => r.business_name.toLowerCase()));
 
           const newLeads = parsedData
@@ -161,7 +163,8 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
               rating: item['Score total'],
               reviews_count: item["Nombre d'avis"],
               category: item['Nom de catégorie'],
-              status: 'to_contact'
+              status: 'to_contact',
+              raw_data: item
             }));
 
           if (newLeads.length > 0) {
@@ -317,7 +320,11 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
       {selectedBusiness && (
         <BusinessDetailsModal
           business={selectedBusiness}
-          onClose={() => setSelectedBusiness(null)}
+          prospectId={selectedProspectId}
+          onClose={() => {
+            setSelectedBusiness(null);
+            setSelectedProspectId(undefined);
+          }}
         />
       )}
 
@@ -588,7 +595,10 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
                     <div className="flex items-center gap-3">
                       {detailedData.length > 0 && getDetailedBusiness(result.business_name) && (
                         <button
-                          onClick={() => setSelectedBusiness(getDetailedBusiness(result.business_name))}
+                          onClick={() => {
+                            setSelectedBusiness(getDetailedBusiness(result.business_name));
+                            setSelectedProspectId(result.id);
+                          }}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-medium text-sm"
                         >
                           <Eye className="w-4 h-4" />

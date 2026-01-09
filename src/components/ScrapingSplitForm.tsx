@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-    Search, Link as LinkIcon, Mail, FileSpreadsheet, MapPin, Target,
+    Search, Link as LinkIcon, MapPin, Target,
     Utensils, Home, Briefcase, Wrench, Stethoscope, GraduationCap, Car, ShoppingBag,
-    Smartphone, Coffee, Music, Camera, Zap
+    Smartphone, Coffee, Music, Camera, Zap, Clock
 } from 'lucide-react';
 import MapPreview from './MapPreview';
 import RadarScanningOverlay from './RadarScanningOverlay';
@@ -59,8 +59,6 @@ export default function ScrapingSplitForm({
     onSubmit,
     isLoading,
     initialData,
-    hideEmail = false,
-    hideSheetUrl = false,
     sessionId,
     onScrapingComplete = () => { }
 }: ScrapingSplitFormProps) {
@@ -210,7 +208,7 @@ export default function ScrapingSplitForm({
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
+                                    {/* <div className="space-y-2">
                                         <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                             Lieu / Zone cible
                                         </label>
@@ -228,7 +226,7 @@ export default function ScrapingSplitForm({
                                             <Target className="w-3 h-3" />
                                             Utilisez la carte à droite pour définir la zone
                                         </p>
-                                    </div>
+                                    </div> */}
 
                                     <div className="space-y-2 hidden">
                                         <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -270,8 +268,8 @@ export default function ScrapingSplitForm({
                                     </div>
                                 </div>
 
-                                {/* Email & Notifications */}
-                                {!hideEmail && (
+                                {/* Email & Notifications - CACHÉ */}
+                                {/* {!hideEmail && (
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                             Email de notification
@@ -287,10 +285,10 @@ export default function ScrapingSplitForm({
                                             />
                                         </div>
                                     </div>
-                                )}
+                                )} */}
 
-                                {/* Google Sheets Config */}
-                                {!hideSheetUrl && (
+                                {/* Google Sheets Config - CACHÉ */}
+                                {/* {!hideSheetUrl && (
                                     <div className="bg-gray-50 dark:bg-gray-800/30 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                                         <div className="flex items-center gap-2 mb-4">
                                             <FileSpreadsheet className="w-5 h-5 text-green-600" />
@@ -344,7 +342,47 @@ export default function ScrapingSplitForm({
                                             )}
                                         </div>
                                     </div>
-                                )}
+                                )} */}
+
+
+                                {/* Summary & Estimation Card */}
+                                <div className="bg-orange-50 dark:bg-orange-900/10 rounded-xl p-4 border border-orange-100 dark:border-orange-900/30 space-y-3">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                                                <Target className="w-4 h-4 text-orange-500" />
+                                                Cible de la recherche
+                                            </h3>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                <span className="font-semibold text-gray-900 dark:text-white capitalize">
+                                                    {formData.secteurActivite || 'Tout secteur'}
+                                                </span>
+                                                {formData.location && (
+                                                    <>
+                                                        {' à '}
+                                                        <span className="font-semibold text-gray-900 dark:text-white">
+                                                            {formData.location}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="h-px bg-orange-200 dark:bg-orange-800/30" />
+
+                                    <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                                            <Clock className="w-4 h-4 text-orange-500" />
+                                            <span>Temps estimé :</span>
+                                        </div>
+                                        <span className="font-bold text-gray-900 dark:text-white">
+                                            {Math.floor((formData.limitResultats * 16) / 60) > 0 &&
+                                                `${Math.floor((formData.limitResultats * 16) / 60)} min `}
+                                            {Math.ceil((formData.limitResultats * 16) % 60)} s
+                                        </span>
+                                    </div>
+                                </div>
 
                                 <button
                                     type="submit"

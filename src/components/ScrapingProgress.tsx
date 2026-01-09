@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase, ScrapingSession } from '../lib/supabase';
 import {
   CheckCircle,
@@ -27,12 +27,22 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0); // Force update for timer
+  const hasCompletedRef = useRef(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTick(t => t + 1);
     }, 1000);
-    return () => clearInterval(timer);
+
+    // Backup polling every 3s in case Realtime disconnects
+    const poller = setInterval(() => {
+      loadSession();
+    }, 3000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(poller);
+    };
   }, []);
 
   useEffect(() => {
@@ -50,7 +60,8 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
         },
         (payload) => {
           setSession(payload.new as ScrapingSession);
-          if (payload.new.status === 'completed') {
+          if (payload.new.status === 'completed' && !hasCompletedRef.current) {
+            hasCompletedRef.current = true;
             createParticles();
             setTimeout(onComplete, 3000);
           }
@@ -75,8 +86,10 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
 
       if (data) {
         setSession(data);
-        if (data.status === 'completed') {
+        if (data.status === 'completed' && !hasCompletedRef.current) {
+          hasCompletedRef.current = true;
           createParticles();
+          setTimeout(onComplete, 3000);
         }
       }
     } catch (err: any) {
@@ -104,7 +117,7 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
 
   // Simulation Logic based on Time
   const limit = session?.limit_results || 10;
-  const secondsPerLead = 15.5;
+  const secondsPerLead = 16;
   const totalEstSeconds = limit * secondsPerLead;
   const startTime = session?.started_at ? new Date(session.started_at).getTime() : Date.now();
   const elapsed = (Date.now() - startTime) / 1000;
@@ -238,7 +251,7 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
             <span>
               Temps restant estimé : {(() => {
                 const limit = session.limit_results || 10;
-                const secondsPerLead = 15.5; // Based on 10 leads = 2m35s
+                const secondsPerLead = 16; // Based on 16s/lead
                 const totalEstSeconds = Math.ceil(limit * secondsPerLead);
 
                 const startTime = new Date(session.started_at).getTime();
@@ -309,60 +322,13 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
         })}
       </div>
 
+      {/* Results block hidden as per request
       {isCompleted && (
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-500 dark:border-green-600 rounded-2xl p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <FileSpreadsheet className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-800 dark:text-white mb-2">
-                  Résultats disponibles !
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  {session.actual_results || 0} leads générés • {session.emails_found || 0} emails trouvés
-                </p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {session.sheet_url && (
-                    <a
-                      href={session.sheet_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors"
-                    >
-                      Ouvrir Google Sheet
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                  <button
-                    onClick={() => setShowResults(!showResults)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border-2 border-green-500 dark:border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl font-semibold transition-colors"
-                  >
-                    {showResults ? (
-                      <>
-                        Masquer les détails
-                        <ChevronUp className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        Voir les détails
-                        <ChevronDown className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {showResults && (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-              <ScrapingResults sessionId={sessionId} />
-            </div>
-          )}
+           ...
         </div>
-      )}
+      )} 
+      */}
     </div>
   );
 }
