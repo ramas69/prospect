@@ -340,6 +340,12 @@ export default function NewScraping() {
             navigate(`/history?session_id=${sessionId}`);
           }
         }}
+        onScrapingCancelled={() => {
+          setIsLoading(false);
+          setSessionId(null);
+          // Only clear critical flags, but pass empty object to trigger reset in form
+          setFormInitialData({});
+        }}
       />
     </div>
   );

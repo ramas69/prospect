@@ -17,7 +17,7 @@ interface DrawingZone {
   radius: number;
 }
 
-function DrawingControl({ onZoneCreated }: { onZoneCreated: (zone: DrawingZone) => void }) {
+function DrawingControl({ onZoneCreated, hasZone }: { onZoneCreated: (zone: DrawingZone) => void; hasZone: boolean }) {
   const map = useMap();
   const [isDrawing, setIsDrawing] = useState(false);
   const [tempRadius, setTempRadius] = useState(0);
@@ -105,13 +105,16 @@ function DrawingControl({ onZoneCreated }: { onZoneCreated: (zone: DrawingZone) 
         {!isDrawing ? (
           <button
             onClick={startDrawing}
-            className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group"
+            className={`relative flex items-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group ${!hasZone ? 'ring-2 ring-green-500/50 ring-offset-2 dark:ring-offset-gray-900' : ''}`}
             title="Dessiner une zone de recherche"
           >
-            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
-              <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            {!hasZone && (
+              <span className="absolute -inset-3 rounded-full bg-green-400/30 animate-ping pointer-events-none" />
+            )}
+            <div className={`p-1.5 rounded-full transition-colors z-10 ${!hasZone ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50'}`}>
+              <Target className={`w-4 h-4 ${!hasZone ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`} />
             </div>
-            <span>Dessiner une zone</span>
+            <span className="z-10">Dessiner une zone</span>
           </button>
         ) : (
           <div className="flex flex-col gap-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md p-3 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
@@ -315,7 +318,7 @@ export default function MapPreview({ onZoneSelect, initialCenter, searchTerm, lo
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapResizer />
-        <DrawingControl onZoneCreated={handleZoneCreated} />
+        <DrawingControl onZoneCreated={handleZoneCreated} hasZone={!!zone} />
         <SearchControl onSearch={handleSearch} />
 
         {/* Clear Button Overlay */}

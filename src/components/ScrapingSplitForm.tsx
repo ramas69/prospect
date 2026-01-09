@@ -51,6 +51,7 @@ interface ScrapingSplitFormProps {
     hideSheetUrl?: boolean;
     sessionId?: string | null;
     onScrapingComplete?: () => void;
+    onScrapingCancelled?: () => void;
 }
 
 export default function ScrapingSplitForm({
@@ -60,7 +61,8 @@ export default function ScrapingSplitForm({
     isLoading,
     initialData,
     sessionId,
-    onScrapingComplete = () => { }
+    onScrapingComplete = () => { },
+    onScrapingCancelled = () => { }
 }: ScrapingSplitFormProps) {
     const { showAlert } = useModal();
     const [formData, setFormData] = useState<ProspectionFormData>({
@@ -84,7 +86,7 @@ export default function ScrapingSplitForm({
         e.preventDefault();
 
         if (!formData.lienGoogleMaps.includes('google.com/maps')) {
-            showAlert('Lien invalide', 'Veuillez entrer un lien Google Maps valide pour commencer le scraping.', 'warning');
+            showAlert('Zone manquant', 'Veuillez dessiner une zone sur la carte à droite pour continuer.', 'warning');
             return;
         }
 
@@ -101,13 +103,17 @@ export default function ScrapingSplitForm({
     };
 
     const handleZoneSelect = (data: { lat: number; lng: number; radius: number; googleMapsUrl: string; cityName?: string }) => {
-        if (data.googleMapsUrl) {
-            updateField('lienGoogleMaps', data.googleMapsUrl);
+        // Always update lienGoogleMaps, even if empty (to handle zone deletion)
+        updateField('lienGoogleMaps', data.googleMapsUrl);
 
+        if (data.googleMapsUrl) {
             if (data.cityName) {
                 const radiusKm = (data.radius / 1000).toFixed(1);
                 updateField('location', `${data.cityName} (${radiusKm} km)`);
             }
+        } else {
+            // Zone was cleared
+            updateField('location', '');
         }
     };
 
@@ -122,6 +128,19 @@ export default function ScrapingSplitForm({
                             <ScrapingProgress
                                 sessionId={sessionId}
                                 onComplete={onScrapingComplete}
+                                onCancel={() => {
+                                    setFormData({
+                                        lienGoogleMaps: '',
+                                        secteurActivite: '',
+                                        limitResultats: 10,
+                                        emailNotification: '',
+                                        nouveauFichier: false,
+                                        nomFichier: '',
+                                        nomFeuille: '',
+                                        urlFichier: ''
+                                    });
+                                    onScrapingCancelled();
+                                }}
                                 minimal
                             />
                         </div>
@@ -384,9 +403,36 @@ export default function ScrapingSplitForm({
                                     </div>
                                 </div>
 
+                                {/* Zone Selection Status */}
+                                {!formData.lienGoogleMaps ? (
+                                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-xl p-4 flex items-start gap-3">
+                                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full shrink-0">
+                                            <MapPin className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-red-700 dark:text-red-400 text-sm">Zone requise</h4>
+                                            <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                                                Veuillez utiliser la carte à droite pour dessiner votre zone de recherche (cercle blanc).
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 rounded-xl p-4 flex items-center gap-3">
+                                        <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-full shrink-0">
+                                            <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-green-700 dark:text-green-400 text-sm">Zone validée</h4>
+                                            <p className="text-xs text-green-600 dark:text-green-300 mt-1">
+                                                Zone active : {formData.location || 'Sur la carte'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <button
                                     type="submit"
-                                    disabled={isLoading}
+                                    disabled={isLoading || !formData.lienGoogleMaps}
                                     className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                 >
                                     {isLoading ? (

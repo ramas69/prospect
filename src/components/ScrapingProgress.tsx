@@ -18,10 +18,11 @@ import ScrapingResults from './ScrapingResults';
 interface ScrapingProgressProps {
   sessionId: string;
   onComplete: () => void;
+  onCancel?: () => void;
   minimal?: boolean;
 }
 
-export default function ScrapingProgress({ sessionId, onComplete, minimal = false }: ScrapingProgressProps) {
+export default function ScrapingProgress({ sessionId, onComplete, onCancel, minimal = false }: ScrapingProgressProps) {
   const [session, setSession] = useState<ScrapingSession | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number }>>([]);
   const [showResults, setShowResults] = useState(false);
@@ -182,7 +183,13 @@ export default function ScrapingProgress({ sessionId, onComplete, minimal = fals
     } catch (err) {
       console.error('Error cancelling session:', err);
     }
-    onComplete();
+
+    // Logic: If onCancel is provided, use it (Reset form behavior). Otherwise use onComplete (Redirect behavior, legacy).
+    if (onCancel) {
+      onCancel();
+    } else {
+      onComplete();
+    }
   };
 
   return (
