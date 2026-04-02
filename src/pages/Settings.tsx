@@ -3,19 +3,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { useModal } from '../contexts/ModalContext';
 import { supabase, UserSettings } from '../lib/supabase';
-import DashboardOverview from './DashboardOverview';
 import {
   User,
   Save,
   Shield,
-  BarChart3,
-  Target,
   Database,
-  Calendar,
-  LayoutDashboard,
   Settings as SettingsIcon,
   Lock,
-  KeyRound
+  KeyRound,
+  Plug,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
 export default function Settings() {
@@ -24,7 +24,7 @@ export default function Settings() {
   const { showConfirm, showAlert } = useModal();
 
   // Tabs State
-  const [activeTab, setActiveTab] = useState<'profile' | 'config'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'config' | 'integrations'>('profile');
 
   // Profile Form State
   const [profileData, setProfileData] = useState({
@@ -37,6 +37,16 @@ export default function Settings() {
     new: '',
     confirm: ''
   });
+
+  // Integration keys
+  const [brevoKey, setBrevoKey] = useState(settings?.brevo_api_key || '');
+  const [lemlistKey, setLemlistKey] = useState(settings?.lemlist_api_key || '');
+  const [showBrevoKey, setShowBrevoKey] = useState(false);
+  const [showLemlistKey, setShowLemlistKey] = useState(false);
+  const [testingBrevo, setTestingBrevo] = useState(false);
+  const [testingLemlist, setTestingLemlist] = useState(false);
+  const [brevoStatus, setBrevoStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [lemlistStatus, setLemlistStatus] = useState<'idle' | 'ok' | 'error'>('idle');
 
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ sessions: 0, leads: 0, lastActivity: '-' });
@@ -119,6 +129,50 @@ export default function Settings() {
     setSaving(false);
   };
 
+  useEffect(() => {
+    if (settings) {
+      setBrevoKey(settings.brevo_api_key || '');
+      setLemlistKey(settings.lemlist_api_key || '');
+    }
+  }, [settings]);
+
+  const testBrevoKey = async () => {
+    if (!brevoKey.trim()) return;
+    setTestingBrevo(true);
+    setBrevoStatus('idle');
+    try {
+      const res = await fetch('https://api.brevo.com/v3/account', {
+        headers: { 'api-key': brevoKey.trim() },
+      });
+      setBrevoStatus(res.ok ? 'ok' : 'error');
+    } catch {
+      setBrevoStatus('error');
+    }
+    setTestingBrevo(false);
+  };
+
+  const testLemlistKey = async () => {
+    if (!lemlistKey.trim()) return;
+    setTestingLemlist(true);
+    setLemlistStatus('idle');
+    try {
+      const res = await fetch('https://api.lemlist.com/api/team', {
+        headers: { Authorization: `Bearer ${lemlistKey.trim()}` },
+      });
+      setLemlistStatus(res.ok ? 'ok' : 'error');
+    } catch {
+      setLemlistStatus('error');
+    }
+    setTestingLemlist(false);
+  };
+
+  const saveIntegrationKeys = async () => {
+    await updateSettings({
+      brevo_api_key: brevoKey.trim() || null,
+      lemlist_api_key: lemlistKey.trim() || null,
+    } as Partial<UserSettings>);
+  };
+
   const updateSettings = async (updates: Partial<UserSettings>) => {
     if (!profile) return;
 
@@ -168,6 +222,16 @@ export default function Settings() {
         >
           <SettingsIcon className="w-4 h-4" />
           Configuration
+        </button>
+        <button
+          onClick={() => setActiveTab('integrations')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'integrations'
+            ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
+            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-700/30'
+            }`}
+        >
+          <Plug className="w-4 h-4" />
+          Intégrations
         </button>
       </div>
 
@@ -319,6 +383,140 @@ export default function Settings() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* INTEGRATIONS TAB */}
+      {activeTab === 'integrations' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-2xl space-y-6">
+
+          {/* Brevo */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M3 8l9 6 9-6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/><path d="M3 8v8a2 2 0 002 2h14a2 2 0 002-2V8" stroke="#2563eb" strokeWidth="2"/><path d="M3 8l9-4 9 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/></svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-white">Brevo</h2>
+                  <p className="text-xs text-gray-500">Emails marketing, newsletters, contacts</p>
+                </div>
+              </div>
+              {brevoStatus === 'ok' && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 text-xs font-bold rounded-lg">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Connecté
+                </span>
+              )}
+              {brevoStatus === 'error' && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 text-xs font-bold rounded-lg">
+                  <XCircle className="w-3.5 h-3.5" /> Clé invalide
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Clé API Brevo
+              </label>
+              <div className="relative">
+                <input
+                  type={showBrevoKey ? 'text' : 'password'}
+                  value={brevoKey}
+                  onChange={(e) => { setBrevoKey(e.target.value); setBrevoStatus('idle'); }}
+                  placeholder="xkeysib-xxxxxxxxxxxxxxxx"
+                  className="w-full px-4 py-3 pr-20 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowBrevoKey(!showBrevoKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  {showBrevoKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                Dashboard Brevo → SMTP & API → Clés API
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={testBrevoKey}
+                  disabled={testingBrevo || !brevoKey.trim()}
+                  className="px-4 py-2 text-sm font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all disabled:opacity-50"
+                >
+                  {testingBrevo ? 'Test...' : 'Tester la connexion'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Lemlist */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#7c3aed" opacity="0.3"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"/></svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-white">Lemlist</h2>
+                  <p className="text-xs text-gray-500">Cold emailing B2B, séquences automatisées</p>
+                </div>
+              </div>
+              {lemlistStatus === 'ok' && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 text-xs font-bold rounded-lg">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Connecté
+                </span>
+              )}
+              {lemlistStatus === 'error' && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 text-xs font-bold rounded-lg">
+                  <XCircle className="w-3.5 h-3.5" /> Clé invalide
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Clé API Lemlist
+              </label>
+              <div className="relative">
+                <input
+                  type={showLemlistKey ? 'text' : 'password'}
+                  value={lemlistKey}
+                  onChange={(e) => { setLemlistKey(e.target.value); setLemlistStatus('idle'); }}
+                  placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
+                  className="w-full px-4 py-3 pr-20 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white rounded-xl focus:ring-2 focus:ring-violet-500 transition-all outline-none font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLemlistKey(!showLemlistKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  {showLemlistKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                Lemlist → Settings → Integrations → API
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={testLemlistKey}
+                  disabled={testingLemlist || !lemlistKey.trim()}
+                  className="px-4 py-2 text-sm font-semibold bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-all disabled:opacity-50"
+                >
+                  {testingLemlist ? 'Test...' : 'Tester la connexion'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Save button */}
+          <button
+            onClick={saveIntegrationKeys}
+            disabled={saving}
+            className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex justify-center items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            Enregistrer les clés API
+          </button>
         </div>
       )}
     </div>

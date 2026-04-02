@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
 import { useModal } from '../contexts/ModalContext';
-import * as XLSX from 'xlsx';
+// xlsx chargé dynamiquement au clic export
 
 export default function History() {
   const { profile } = useAuth();
@@ -173,7 +173,7 @@ export default function History() {
 
     showConfirm(
       'Supprimer la sélection',
-      `Êtes-vous sûr de vouloir supprimer les ${selectedIds.size} scrapings sélectionnés ? Cette action est irréversible.`,
+      `Êtes-vous sûr de vouloir supprimer les ${selectedIds.size} recherches sélectionnées ? Cette action est irréversible.`,
       async () => {
         setIsDeletingBulk(true);
         try {
@@ -189,7 +189,7 @@ export default function History() {
             throw new Error("La base de données a refusé la suppression. Vérifiez vos droits RLS.");
           }
 
-          showNotification('success', `${data.length} scrapings supprimés avec succès`);
+          showNotification('success', `${data.length} recherches supprimées avec succès`);
           const deletedIds = new Set(data.map(s => s.id));
           setSessions(prev => prev.filter(s => !deletedIds.has(s.id)));
           setSelectedIds(new Set());
@@ -219,7 +219,7 @@ export default function History() {
         throw new Error("La base de données a refusé la suppression. Vérifiez vos droits RLS.");
       }
 
-      showNotification('success', 'Scraping supprimé avec succès');
+      showNotification('success', 'Recherche supprimée avec succès');
       setSessions(prev => prev.filter(s => s.id !== id));
       setSelectedIds(prev => {
         const next = new Set(prev);
@@ -235,8 +235,8 @@ export default function History() {
 
   const confirmDelete = (id: string) => {
     showConfirm(
-      'Supprimer le scraping',
-      'Êtes-vous sûr de vouloir supprimer ce scraping ? Cette action est irréversible et supprimera tous les prospects associés.',
+      'Supprimer la recherche',
+      'Êtes-vous sûr de vouloir supprimer cette recherche ? Cette action est irréversible et supprimera tous les prospects associés.',
       () => {
         handleDeleteSessionById(id);
       },
@@ -248,6 +248,7 @@ export default function History() {
 
 
   const handleExport = async (format: 'xlsx' | 'csv', targetIds?: string[]) => {
+    const XLSX = await import('xlsx');
     setShowExportMenu(false);
 
     const sessionIdsToExport = targetIds
@@ -255,7 +256,7 @@ export default function History() {
       : (selectedIds.size > 0 ? Array.from(selectedIds) : filteredSessions.map(s => s.id));
 
     if (sessionIdsToExport.length === 0) {
-      showNotification('error', 'Aucun scraping sélectionné pour l\'export');
+      showNotification('error', 'Aucune recherche sélectionnée pour l\'export');
       return;
     }
 
@@ -273,7 +274,7 @@ export default function History() {
     }
 
     if (!results || results.length === 0) {
-      showNotification('error', 'Aucun prospect trouvé dans les scrapings sélectionnés');
+      showNotification('error', 'Aucun prospect trouvé dans les recherches sélectionnées');
       return;
     }
 
@@ -287,7 +288,7 @@ export default function History() {
       'Nombre d\'avis': result.reviews_count || '',
       'Catégorie': result.category || '',
       'Statut': getStatusText(result.status || 'to_contact'),
-      'Date du Scraping': new Date(result.created_at).toLocaleDateString('fr-FR'),
+      'Date de la recherche': new Date(result.created_at).toLocaleDateString('fr-FR'),
     }));
 
     // Créer le classeur Excel
@@ -344,10 +345,10 @@ export default function History() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-            Historique des Scraping
+            Mes Recherches
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {sessions.length} scraping au total
+            {sessions.length} recherche(s) au total
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -495,7 +496,7 @@ export default function History() {
                       )}
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <Users className="w-4 h-4" />
-                        <span>{session.actual_results} leads</span>
+                        <span>{session.actual_results} prospects</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <User className="w-4 h-4" />

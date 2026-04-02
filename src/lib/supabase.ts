@@ -98,6 +98,8 @@ export type UserSettings = {
   show_tutorial: boolean;
   default_sheet_url: string | null;
   notification_email: string | null;
+  brevo_api_key: string | null;
+  lemlist_api_key: string | null;
   created_at: string;
   updated_at: string;
 };

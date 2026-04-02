@@ -1,5 +1,20 @@
-import { X, MapPin, Phone, Mail, Globe, Star, Clock, ExternalLink, Info, CheckCircle2, Building2, Wallet, Accessibility, Dog, Baby, Car } from 'lucide-react';
+import { X, MapPin, Phone, Mail, Globe, Star, Clock, ExternalLink, Info, CheckCircle2, Building2, Wallet, Accessibility, Dog, Baby, Car, UsersRound, BadgeEuro, Briefcase, Hash } from 'lucide-react';
 import ProspectTimeline from './ProspectTimeline';
+import { formatRevenue } from '../lib/enrichment';
+
+interface EnrichmentInfo {
+  siren?: string;
+  siret?: string;
+  employee_range?: string;
+  revenue?: number;
+  revenue_year?: string;
+  net_income?: number;
+  company_category?: string;
+  naf_code?: string;
+  directors?: any[];
+  capital?: number;
+  legal_form?: string;
+}
 
 interface BusinessDetails {
   row_number?: number;
@@ -22,10 +37,11 @@ interface BusinessDetails {
 interface BusinessDetailsModalProps {
   business: BusinessDetails;
   prospectId?: string;
+  enrichment?: EnrichmentInfo;
   onClose: () => void;
 }
 
-export default function BusinessDetailsModal({ business, prospectId, onClose }: BusinessDetailsModalProps) {
+export default function BusinessDetailsModal({ business, prospectId, enrichment, onClose }: BusinessDetailsModalProps) {
   let openingHours: Array<{ day: string; hours: string }> = [];
   let businessInfo: Record<string, any> = {};
 
@@ -235,6 +251,82 @@ export default function BusinessDetailsModal({ business, prospectId, onClose }: 
                   </div>
                 </div>
               </div>
+
+              {/* Données entreprise enrichies */}
+              {enrichment && (enrichment.employee_range || enrichment.revenue || enrichment.siret) && (
+                <div className="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-indigo-100 dark:border-indigo-800 shadow-sm">
+                  <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                    <Hash className="w-5 h-5 text-indigo-500" />
+                    Données Entreprise
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {enrichment.employee_range && (
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <UsersRound className="w-5 h-5 text-indigo-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Effectifs</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{enrichment.employee_range}</p>
+                        </div>
+                      </div>
+                    )}
+                    {enrichment.revenue && (
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <BadgeEuro className="w-5 h-5 text-emerald-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Chiffre d'affaires {enrichment.revenue_year && `(${enrichment.revenue_year})`}</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{formatRevenue(enrichment.revenue)}</p>
+                          {enrichment.net_income && (
+                            <p className="text-xs text-gray-500 mt-0.5">Résultat net : {formatRevenue(enrichment.net_income)}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {enrichment.company_category && (
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <Briefcase className="w-5 h-5 text-violet-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Catégorie</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{enrichment.company_category}</p>
+                          {enrichment.naf_code && <p className="text-xs text-gray-500">NAF {enrichment.naf_code}</p>}
+                        </div>
+                      </div>
+                    )}
+                    {enrichment.capital && (
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <BadgeEuro className="w-5 h-5 text-amber-500 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Capital social</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{formatRevenue(enrichment.capital)}</p>
+                          {enrichment.legal_form && <p className="text-xs text-gray-500">{enrichment.legal_form}</p>}
+                        </div>
+                      </div>
+                    )}
+                    {enrichment.siret && (
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <Hash className="w-5 h-5 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Identifiants</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">SIRET {enrichment.siret}</p>
+                          {enrichment.siren && <p className="text-xs text-gray-500">SIREN {enrichment.siren}</p>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {enrichment.directors && enrichment.directors.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-indigo-100 dark:border-indigo-800">
+                      <p className="text-xs font-medium text-gray-500 uppercase mb-2">Dirigeants</p>
+                      <div className="flex flex-wrap gap-2">
+                        {enrichment.directors.map((d: any, idx: number) => (
+                          <span key={d.nom || idx} className="px-2.5 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 rounded-lg">
+                            {d.nom || d.prenom ? `${d.prenom || ''} ${d.nom || ''}`.trim() : JSON.stringify(d)}
+                            {d.qualite && <span className="text-gray-400 ml-1">({d.qualite})</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Summary / About Section - Prominent placement */}
               {business.Résumé && (

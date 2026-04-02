@@ -210,6 +210,26 @@ export default function MapPreview({ onZoneSelect, initialCenter, searchTerm, lo
   const [center, setCenter] = useState<{ lat: number; lng: number }>(
     initialCenter || { lat: 48.8566, lng: 2.3522 }
   );
+  const [geolocated, setGeolocated] = useState(false);
+
+  // Fix #9: Géolocalisation du navigateur au premier rendu
+  useEffect(() => {
+    if (geolocated || initialCenter) return;
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const newCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setCenter(newCenter);
+          setGeolocated(true);
+          if (mapRef.current) {
+            mapRef.current.setView([newCenter.lat, newCenter.lng], 12);
+          }
+        },
+        () => { setGeolocated(true); }, // Ignorer les erreurs silencieusement
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
+    }
+  }, []);
   const [cityName, setCityName] = useState<string | undefined>();
   const [zone, setZone] = useState<DrawingZone | null>(null);
   const mapRef = useRef<L.Map | null>(null);

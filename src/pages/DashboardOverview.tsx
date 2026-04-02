@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -20,9 +18,7 @@ import {
   Users,
   Mail,
   TrendingUp,
-  Calendar,
   Search,
-  ArrowUpRight,
   Database,
   Target
 } from 'lucide-react';
@@ -129,6 +125,25 @@ export default function DashboardOverview() {
         </p>
       </div>
 
+      {/* État vide pour les nouveaux utilisateurs */}
+      {stats.totalSessions === 0 && (
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/10 dark:to-red-900/10 border border-orange-200 dark:border-orange-800 rounded-3xl p-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center mb-4">
+            <Search className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Bienvenue sur Hall Prospects !</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            Lancez votre première recherche pour trouver des prospects qualifiés automatiquement.
+          </p>
+          <button
+            onClick={() => navigate('/scraping')}
+            className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
+          >
+            Lancer ma première recherche
+          </button>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -142,7 +157,7 @@ export default function DashboardOverview() {
             </span>
           </div>
           <p className="text-3xl font-black text-gray-800 dark:text-white">{stats.totalLeads}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Leads générés</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Prospects trouvés</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -165,7 +180,7 @@ export default function DashboardOverview() {
             </div>
           </div>
           <p className="text-3xl font-black text-gray-800 dark:text-white">{stats.totalSessions}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Sessions de scraping</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Recherches effectuées</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-b-4 border-b-red-500">
@@ -190,7 +205,7 @@ export default function DashboardOverview() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">Performance Hebdomadaire</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Nombre de leads extraits ces 7 derniers jours</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Prospects collectés ces 7 derniers jours</p>
             </div>
           </div>
           <div className="h-[300px] w-full">
@@ -274,7 +289,7 @@ export default function DashboardOverview() {
       {/* Recent Activity Table */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Dernières Activités</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Recherches récentes</h2>
           <button onClick={() => navigate('/history')} className="text-sm font-semibold text-orange-600 hover:text-orange-700">Voir tout</button>
         </div>
         <div className="overflow-x-auto">

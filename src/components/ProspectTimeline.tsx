@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Send, User, Clock } from 'lucide-react';
+import { Send, User, Clock, ArrowRight } from 'lucide-react';
 
 interface Note {
     id: string;
@@ -13,6 +13,21 @@ interface Note {
     };
 }
 
+interface StatusChange {
+    id: string;
+    old_status: string | null;
+    new_status: string;
+    changed_at: string;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+    to_contact: 'À contacter',
+    in_progress: 'En cours',
+    qualified: 'Qualifié',
+    converted: 'Signé',
+    rejected: 'Perdu',
+};
+
 interface ProspectTimelineProps {
     prospectId: string;
 }
@@ -20,6 +35,7 @@ interface ProspectTimelineProps {
 export default function ProspectTimeline({ prospectId }: ProspectTimelineProps) {
     const { profile } = useAuth();
     const [notes, setNotes] = useState<Note[]>([]);
+    const [statusHistory, setStatusHistory] = useState<StatusChange[]>([]);
     const [newNote, setNewNote] = useState('');
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -53,19 +69,22 @@ export default function ProspectTimeline({ prospectId }: ProspectTimelineProps) 
 
     const loadNotes = async () => {
         try {
-            const { data, error } = await supabase
-                .from('prospect_notes')
-                .select(`
-          *,
-          profiles (
-            full_name
-          )
-        `)
-                .eq('prospect_id', prospectId)
-                .order('created_at', { ascending: false });
+            const [notesRes, historyRes] = await Promise.all([
+                supabase
+                    .from('prospect_notes')
+                    .select(`*, profiles (full_name)`)
+                    .eq('prospect_id', prospectId)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('prospect_status_history')
+                    .select('*')
+                    .eq('prospect_id', prospectId)
+                    .order('changed_at', { ascending: false }),
+            ]);
 
-            if (error) throw error;
-            setNotes(data || []);
+            if (notesRes.error) throw notesRes.error;
+            setNotes(notesRes.data || []);
+            setStatusHistory(historyRes.data || []);
         } catch (err) {
             console.error('Error loading notes:', err);
         } finally {
@@ -155,9 +174,32 @@ export default function ProspectTimeline({ prospectId }: ProspectTimelineProps) 
             </h3>
 
             <div className="space-y-6 mb-6 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                {notes.length === 0 ? (
+                {/* Historique des changements de statut */}
+                {statusHistory.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                        {statusHistory.map((change) => (
+                            <div key={change.id} className="flex items-center gap-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg text-xs">
+                                <ArrowRight className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                <span className="text-gray-500 dark:text-gray-400">
+                                    {change.old_status ? (
+                                        <>
+                                            <span className="font-semibold text-gray-700 dark:text-gray-300">{STATUS_LABELS[change.old_status] || change.old_status}</span>
+                                            {' → '}
+                                        </>
+                                    ) : 'Statut initial → '}
+                                    <span className="font-semibold text-blue-700 dark:text-blue-400">{STATUS_LABELS[change.new_status] || change.new_status}</span>
+                                </span>
+                                <span className="ml-auto text-gray-400 shrink-0">
+                                    {new Date(change.changed_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {notes.length === 0 && statusHistory.length === 0 ? (
                     <p className="text-center text-gray-400 text-sm py-4">
-                        Aucune note pour le moment. Soyez le premier à écrire !
+                        Aucune activité pour le moment. Soyez le premier à écrire !
                     </p>
                 ) : (
                     notes.map((note) => (

@@ -14,7 +14,7 @@ export default function NewScraping() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [formInitialData, setFormInitialData] = useState<Partial<ProspectionFormData>>({});
 
-  const n8nWebhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   useEffect(() => {
     loadTemplates();
@@ -135,98 +135,28 @@ export default function NewScraping() {
         timestamp: new Date().toISOString(),
       };
 
-      if (!n8nWebhookUrl || n8nWebhookUrl === 'your_n8n_webhook_url_here') {
-        await simulateScraping(session.id);
-        return;
-      }
-
-      console.log('=== ENVOI AU WEBHOOK N8N ===');
+      console.log('=== LANCEMENT RECHERCHE ===');
       console.log('Payload envoyé:', payload);
 
-      const response = await fetch(n8nWebhookUrl, {
+      // Appel à la Edge Function Supabase (remplace n8n)
+      const scrapingUrl = `${supabaseUrl}/functions/v1/scraping-engine`;
+      fetch(scrapingUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+      }).then(response => {
+        if (!response.ok) {
+          console.error('Erreur Edge Function:', response.status);
+        } else {
+          console.log('Recherche lancée avec succès');
+        }
+      }).catch(err => {
+        console.error('Erreur réseau Edge Function:', err);
       });
 
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      // Gestion sécurisée de la réponse (n8n peut renvoyer une réponse vide)
-      const responseText = await response.text();
-      let responseData = null;
-
-      if (responseText) {
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (e) {
-          console.log('La réponse n\'est pas au format JSON:', responseText);
-        }
-      }
-
-      console.log('=== RÉPONSE DU WEBHOOK N8N ===');
-      console.log('Réponse complète:', responseData);
-
-      let dataItem = null;
-
-      if (Array.isArray(responseData) && responseData.length > 0) {
-        dataItem = responseData[0];
-      } else if (responseData && typeof responseData === 'object' && responseData.statut) {
-        dataItem = responseData;
-      }
-
-      if (dataItem) {
-        console.log('Données reçues:', dataItem);
-
-        const updateData: any = {
-          status: dataItem.statut === 'termine' ? 'completed' : 'in_progress',
-          completed_at: new Date().toISOString(),
-          progress_percentage: 100,
-        };
-
-        if (dataItem.lien_google_sheet) {
-          updateData.sheet_url = dataItem.lien_google_sheet;
-          console.log('URL du Google Sheet:', dataItem.lien_google_sheet);
-        }
-
-        if (dataItem.count !== undefined) {
-          updateData.actual_results = dataItem.count;
-          console.log('Nombre de résultats:', dataItem.count);
-        }
-
-        if (dataItem.json_donnee_scrappe) {
-          console.log('Données JSON scrapées trouvées');
-          updateData.scraped_data = dataItem.json_donnee_scrappe;
-          try {
-            const scrapedData = JSON.parse(dataItem.json_donnee_scrappe);
-            console.log('Nombre d\'éléments scrapés:', scrapedData.length);
-            console.log('Premier élément scrapé:', scrapedData[0]);
-
-            const emailsFound = scrapedData.filter((item: any) =>
-              item.Email && item.Email !== 'aucun_mail'
-            ).length;
-            updateData.emails_found = emailsFound;
-          } catch (e) {
-            console.error('Erreur parsing json_donnee_scrappe:', e);
-          }
-        }
-
-        console.log('Données de mise à jour:', updateData);
-
-        await supabase
-          .from('scraping_sessions')
-          .update(updateData)
-          .eq('id', session.id);
-
-        showNotification('success', `Scraping terminé ! ${dataItem.count || 0} résultats trouvés`);
-      } else {
-        console.log('Réponse non formatée comme attendu');
-      }
-
-      await refreshProfile();
+      showNotification('success', 'Recherche lancée ! Vos prospects seront disponibles dans quelques minutes.');
     } catch (error: any) {
       console.error('Erreur lors du scraping:', error);
       showNotification('error', error.message || 'Une erreur est survenue');
@@ -311,7 +241,7 @@ export default function NewScraping() {
     }
 
     await refreshProfile();
-    showNotification('success', 'Scraping terminé avec succès !');
+    showNotification('success', 'Recherche terminée avec succès !');
   };
 
   const useTemplate = (template: Template) => {

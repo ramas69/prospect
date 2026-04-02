@@ -86,7 +86,7 @@ export default function ScrapingSplitForm({
         e.preventDefault();
 
         if (!formData.lienGoogleMaps.includes('google.com/maps')) {
-            showAlert('Zone manquant', 'Veuillez dessiner une zone sur la carte à droite pour continuer.', 'warning');
+            showAlert('Zone manquante', 'Veuillez dessiner une zone sur la carte à droite pour continuer.', 'warning');
             return;
         }
 
@@ -149,9 +149,9 @@ export default function ScrapingSplitForm({
 
                             {/* Header */}
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Nouveau Scraping</h1>
+                                <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Nouvelle Recherche</h1>
                                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                    Configurez votre campagne de prospection en quelques clics.
+                                    Définissez votre zone et votre secteur pour trouver des prospects.
                                 </p>
                             </div>
 
@@ -160,7 +160,7 @@ export default function ScrapingSplitForm({
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                                         <Zap className="w-4 h-4 text-orange-500 fill-orange-500" />
-                                        Accès rapide
+                                        Recherches favorites
                                     </div>
                                     <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3">
                                         {templates.map((template) => {
@@ -444,7 +444,7 @@ export default function ScrapingSplitForm({
                                             Lancement...
                                         </span>
                                     ) : (
-                                        'Lancer le scraping'
+                                        'Lancer la recherche'
                                     )}
                                 </button>
                             </form>

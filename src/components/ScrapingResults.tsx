@@ -30,9 +30,13 @@ import {
   ShieldQuestion,
   ArrowLeft,
   Calendar,
-  Users
+  Users,
+  BadgeEuro,
+  UsersRound,
+  Briefcase
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// xlsx chargé dynamiquement au clic export
+import { enrichProspect, formatRevenue } from '../lib/enrichment';
 
 interface ScrapingResult {
   id: string;
@@ -50,6 +54,18 @@ interface ScrapingResult {
   email_status?: 'unverified' | 'valid' | 'risky' | 'invalid' | 'verifying';
   email_last_verified_at?: string;
   last_action_at?: string;
+  siren?: string;
+  siret?: string;
+  employee_range?: string;
+  revenue?: number;
+  revenue_year?: string;
+  net_income?: number;
+  company_category?: string;
+  naf_code?: string;
+  directors?: any[];
+  capital?: number;
+  legal_form?: string;
+  enriched_at?: string;
   created_at: string;
 }
 
@@ -168,7 +184,7 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
             }));
 
           if (newLeads.length > 0) {
-            console.log(`Persisting ${newLeads.length} new leads to database...`);
+            console.log(`Saving ${newLeads.length} new leads to database...`);
             const { data: insertedLeads, error } = await supabase
               .from('scraping_results')
               .insert(newLeads)
@@ -189,6 +205,25 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
 
     setResults(currentResults);
     setLoading(false);
+
+    // Auto-enrichissement des prospects non enrichis
+    const unenriched = currentResults.filter(r => !r.enriched_at);
+    if (unenriched.length > 0) {
+      autoEnrichProspects(unenriched);
+    }
+  };
+
+  const autoEnrichProspects = async (prospects: ScrapingResult[]) => {
+    for (const prospect of prospects) {
+      const city = prospect.address?.split(',').pop()?.trim();
+      const data = await enrichProspect(prospect.id, prospect.business_name, city);
+      if (data) {
+        setResults(prev => prev.map(r =>
+          r.id === prospect.id ? { ...r, ...data } : r
+        ));
+      }
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
   };
 
   const handleUpdateLead = async (id: string, updates: Partial<ScrapingResult>) => {
@@ -202,10 +237,17 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
       .eq('id', id);
 
     if (error) {
+      console.error('Update error:', error);
       showNotification('error', 'Erreur lors de la mise à jour');
     } else {
-      setResults(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
-      showNotification('success', 'Prospect mis à jour');
+      // Si le statut change à autre chose que "to_contact", retirer de la liste
+      if (updates.status && updates.status !== 'to_contact') {
+        setResults(prev => prev.filter(item => item.id !== id));
+        showNotification('success', 'Prospect déplacé vers "Mes Prospects"');
+      } else {
+        setResults(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+        showNotification('success', 'Prospect mis à jour');
+      }
     }
     setUpdatingId(null);
   };
@@ -281,7 +323,8 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
     return detailedData.find(item => item.Titre === businessName) || null;
   };
 
-  const handleExport = (format: 'xlsx' | 'csv') => {
+  const handleExport = async (format: 'xlsx' | 'csv') => {
+    const XLSX = await import('xlsx');
     const data = filteredResults.map((result) => ({
       'Nom': result.business_name,
       'Adresse': result.address || '',
@@ -292,12 +335,18 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
       'Avis': result.reviews_count || '',
       'Catégorie': result.category || '',
       'Statut': statusOptions.find(o => o.value === result.status)?.label || result.status || 'À contacter',
-      'Commentaires': result.notes || ''
+      'Commentaires': result.notes || '',
+      'Effectifs': result.employee_range || '',
+      'CA': result.revenue ? `${result.revenue} €` : '',
+      'Année CA': result.revenue_year || '',
+      'Type entreprise': result.company_category || '',
+      'Capital': result.capital ? `${result.capital} €` : '',
+      'SIRET': result.siret || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Résultats Scraping');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Prospects');
 
     const filename = `results-${new Date().toISOString().split('T')[0]}.${format}`;
     // XLSX.writeFile automatically detects format based on extension (csv or xlsx)
@@ -321,6 +370,7 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
         <BusinessDetailsModal
           business={selectedBusiness}
           prospectId={selectedProspectId}
+          enrichment={selectedProspectId ? results.find(r => r.id === selectedProspectId) : undefined}
           onClose={() => {
             setSelectedBusiness(null);
             setSelectedProspectId(undefined);
@@ -342,7 +392,7 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
             )}
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
-                {sessionInfo?.sector || 'Résultats du Scraping'}
+                {sessionInfo?.sector || 'Prospects trouvés'}
               </h2>
               <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                 <button
@@ -361,7 +411,7 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
                 <span>•</span>
                 <div className="flex items-center gap-1 font-semibold text-orange-600 dark:text-orange-400">
                   <Users className="w-3.5 h-3.5" />
-                  <span>{results.length} leads trouvés</span>
+                  <span>{results.length} prospects trouvés</span>
                 </div>
               </div>
             </div>
@@ -442,7 +492,7 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
                     ? 'Aucun résultat ne correspond à votre recherche'
                     : results.length > 0
                       ? 'Tous vos prospects ont été déplacés vers la gestion des leads'
-                      : 'Aucun résultat n\'a été trouvé lors de ce scraping'}
+                      : 'Aucun prospect trouvé pour cette recherche'}
                 </p>
                 {results.length > 0 && !searchTerm && (
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
@@ -555,6 +605,42 @@ export default function ScrapingResults({ sessionId, onClose }: ScrapingResultsP
                       </div>
                     )}
                   </div>
+
+                  {/* Données entreprise enrichies */}
+                  {result.enriched_at && (
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {result.employee_range && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-sm">
+                          <UsersRound className="w-4 h-4 text-indigo-500" />
+                          <span className="font-semibold text-indigo-700 dark:text-indigo-300">{result.employee_range}</span>
+                        </div>
+                      )}
+                      {result.revenue && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-sm">
+                          <BadgeEuro className="w-4 h-4 text-emerald-500" />
+                          <span className="font-semibold text-emerald-700 dark:text-emerald-300">CA {formatRevenue(result.revenue)}</span>
+                          {result.revenue_year && <span className="text-xs text-emerald-500">({result.revenue_year})</span>}
+                        </div>
+                      )}
+                      {result.company_category && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 dark:bg-violet-900/20 rounded-lg text-sm">
+                          <Briefcase className="w-4 h-4 text-violet-500" />
+                          <span className="font-semibold text-violet-700 dark:text-violet-300">{result.company_category}</span>
+                        </div>
+                      )}
+                      {result.capital && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-sm">
+                          <BadgeEuro className="w-4 h-4 text-amber-500" />
+                          <span className="font-semibold text-amber-700 dark:text-amber-300">Capital {formatRevenue(result.capital)}</span>
+                        </div>
+                      )}
+                      {result.siret && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">SIRET {result.siret}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="mt-6 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex flex-wrap items-center gap-2">

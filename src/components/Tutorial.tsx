@@ -8,7 +8,6 @@ import {
   Search,
   History,
   BarChart3,
-  Trophy,
   Sparkles,
 } from 'lucide-react';
 
@@ -55,37 +54,30 @@ export default function Tutorial({ onComplete }: TutorialProps) {
     {
       title: 'Bienvenue sur Hall Prospects !',
       description:
-        'Découvrez comment utiliser la plateforme pour générer des leads qualifiés automatiquement depuis Google Maps.',
+        'Trouvez des prospects qualifiés automatiquement grâce à Google Maps. Dessinez une zone, choisissez un secteur, et laissez l\'outil travailler pour vous.',
       icon: Sparkles,
       color: 'orange',
     },
     {
-      title: 'Lancer un Scraping',
+      title: 'Lancez une recherche',
       description:
-        'Cliquez sur "Nouveau Scraping" pour configurer et lancer votre première extraction de données. Collez simplement un lien Google Maps et définissez vos paramètres.',
+        'Allez dans "Nouvelle Recherche", dessinez votre zone sur la carte, choisissez le secteur d\'activité et le nombre de prospects souhaités.',
       icon: Search,
       color: 'blue',
     },
     {
-      title: 'Suivez vos Résultats',
+      title: 'Gérez vos prospects',
       description:
-        'Consultez l\'historique de tous vos scraping, exportez les données en CSV, et suivez les statistiques en temps réel.',
+        'Retrouvez tous vos prospects dans "Mes Prospects". Filtrez, qualifiez, ajoutez des notes et exportez vers Brevo ou Lemlist pour vos campagnes email.',
       icon: History,
       color: 'green',
     },
     {
-      title: 'Analytics & Performance',
+      title: 'Suivez votre performance',
       description:
-        'Visualisez vos performances avec des graphiques détaillés : nombre de leads, emails trouvés, taux de succès, et plus encore.',
+        'Visualisez vos résultats dans l\'onglet Performance : prospects trouvés, emails collectés, taux de réussite et retour sur investissement.',
       icon: BarChart3,
       color: 'purple',
-    },
-    {
-      title: 'Gagnez des Badges',
-      description:
-        'Débloquez des récompenses en atteignant vos objectifs : premiers scraping, streaks, nombre de leads générés. Amusez-vous en prospectant !',
-      icon: Trophy,
-      color: 'yellow',
     },
   ];
 
@@ -112,11 +104,6 @@ export default function Tutorial({ onComplete }: TutorialProps) {
       bg: 'bg-purple-100 dark:bg-purple-900/30',
       text: 'text-purple-600 dark:text-purple-400',
       gradient: 'from-purple-500 to-pink-500',
-    },
-    yellow: {
-      bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-      text: 'text-yellow-600 dark:text-yellow-400',
-      gradient: 'from-yellow-500 to-orange-500',
     },
   };
 

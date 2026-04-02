@@ -103,9 +103,9 @@ export default function Analytics() {
       textColor: 'text-blue-600 dark:text-blue-400',
     },
     {
-      name: 'Efficacité Scraping',
+      name: 'Efficacité des recherches',
       value: totals.scraping_count ? (totals.leads_generated / totals.scraping_count).toFixed(0) : 0,
-      description: 'Leads par session',
+      description: 'Prospects par recherche',
       icon: Target,
       color: 'orange',
       bgColor: 'bg-orange-50 dark:bg-orange-900/20',
@@ -123,7 +123,7 @@ export default function Analytics() {
   ];
 
   const exportData = () => {
-    const headers = ['Date', 'Scraping', 'Leads', 'Emails', 'Durée Moyenne (min)'];
+    const headers = ['Date', 'Recherches', 'Prospects', 'Emails', 'Durée Moyenne (min)'];
     const rows = analytics.map((day) => [
       day.date,
       day.scraping_count,
@@ -233,7 +233,7 @@ export default function Analytics() {
                   </div>
                   <div className="flex items-center gap-4 mt-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                      {s.count} sessions
+                      {s.count} recherches
                     </span>
                     <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">
                       {((s.emails / (s.leads || 1)) * 100).toFixed(0)}% emails
@@ -283,7 +283,7 @@ export default function Analytics() {
                       </div>
                     </div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
-                      {day.scraping_count} sessions • {Math.floor(day.avg_duration_seconds / 60)} min moy.
+                      {day.scraping_count} recherches • {Math.floor(day.avg_duration_seconds / 60)} min moy.
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-300" />

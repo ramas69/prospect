@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ModalProvider } from './contexts/ModalContext';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardOverview from './pages/DashboardOverview';
 
@@ -52,13 +53,14 @@ function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route element={<ProtectedLayout />}>
                   <Route path="/" element={<DashboardOverview />} />
                   <Route path="/scraping" element={<NewScraping />} />
                   <Route path="/history" element={<History />} />
                   <Route path="/prospects" element={<Prospects />} />
+                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="/templates" element={<Templates />} />
-
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

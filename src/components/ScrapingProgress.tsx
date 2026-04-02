@@ -6,14 +6,9 @@ import {
   MapPin,
   Search,
   Mail,
-  FileSpreadsheet,
   Sparkles,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
   Clock,
 } from 'lucide-react';
-import ScrapingResults from './ScrapingResults';
 
 interface ScrapingProgressProps {
   sessionId: string;
@@ -25,7 +20,6 @@ interface ScrapingProgressProps {
 export default function ScrapingProgress({ sessionId, onComplete, onCancel, minimal = false }: ScrapingProgressProps) {
   const [session, setSession] = useState<ScrapingSession | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0); // Force update for timer
   const hasCompletedRef = useRef(false);
@@ -37,7 +31,9 @@ export default function ScrapingProgress({ sessionId, onComplete, onCancel, mini
 
     // Backup polling every 3s in case Realtime disconnects
     const poller = setInterval(() => {
-      loadSession();
+      if (!hasCompletedRef.current) {
+        loadSession();
+      }
     }, 3000);
 
     return () => {
@@ -111,9 +107,9 @@ export default function ScrapingProgress({ sessionId, onComplete, onCancel, mini
 
   const steps = [
     { name: 'Connexion à Google Maps', icon: MapPin, key: 'maps' },
-    { name: 'Extraction des données', icon: Search, key: 'extract' },
+    { name: 'Collecte des entreprises', icon: Search, key: 'extract' },
     { name: 'Recherche des emails', icon: Mail, key: 'emails' },
-    { name: 'Finalisation', icon: Sparkles, key: 'final' },
+    { name: 'Enregistrement des prospects', icon: Sparkles, key: 'final' },
   ];
 
   // Simulation Logic based on Time
@@ -218,17 +214,22 @@ export default function ScrapingProgress({ sessionId, onComplete, onCancel, mini
           </div>
         </div>
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-          {isCompleted ? 'Scraping Terminé !' : 'Scraping en cours...'}
+          {isCompleted ? 'Recherche terminée !' : 'Recherche en cours...'}
         </h2>
         <p className="text-gray-600 dark:text-gray-400 font-medium">
-          {steps[currentStepIndex]?.name || 'Initialisation'}
+          {session?.current_step || steps[currentStepIndex]?.name || 'Initialisation'}
         </p>
+        {!isCompleted && elapsed > 600 && (
+          <div className="mt-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-400 font-medium">
+            La recherche prend plus de temps que prévu. Vous pouvez patienter ou annuler.
+          </div>
+        )}
         {!isCompleted && (
           <button
             onClick={handleCancel}
             className="mt-2 text-sm text-red-500 hover:text-red-600 hover:underline font-medium transition-colors"
           >
-            Arrêter / Revenir au formulaire
+            Annuler la recherche
           </button>
         )}
       </div>
@@ -329,13 +330,41 @@ export default function ScrapingProgress({ sessionId, onComplete, onCancel, mini
         })}
       </div>
 
-      {/* Results block hidden as per request
-      {isCompleted && (
+      {/* Résumé quand terminé */}
+      {isCompleted && session && (
         <div className="space-y-4">
-           ...
+          {/* Message si moins de résultats que demandé */}
+          {session.actual_results !== undefined && session.actual_results < (session.limit_results || 0) && (
+            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-full shrink-0 mt-0.5">
+                <Search className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-amber-700 dark:text-amber-400 text-sm">
+                  {session.actual_results} entreprise{session.actual_results > 1 ? 's' : ''} trouvée{session.actual_results > 1 ? 's' : ''} au lieu de {session.limit_results}
+                </h4>
+                <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
+                  La zone sélectionnée ne contient pas assez de résultats pour ce secteur. Essayez d'élargir la zone ou de changer le secteur d'activité.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Résumé des résultats */}
+          <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-black text-green-700 dark:text-green-400">{session.actual_results || 0}</p>
+                <p className="text-xs font-medium text-green-600 dark:text-green-500">Entreprises trouvées</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-black text-green-700 dark:text-green-400">{session.emails_found || 0}</p>
+                <p className="text-xs font-medium text-green-600 dark:text-green-500">Emails récupérés</p>
+              </div>
+            </div>
+          </div>
         </div>
-      )} 
-      */}
+      )}
     </div>
   );
 }

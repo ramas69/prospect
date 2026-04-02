@@ -52,6 +52,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Vérification du token d'authentification
+    const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
+    if (webhookSecret) {
+      const authHeader = req.headers.get('x-webhook-secret') || req.headers.get('authorization')?.replace('Bearer ', '');
+      if (authHeader !== webhookSecret) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
